@@ -33,7 +33,7 @@ pipeline {
             }
         }
 
-        /* ---------------------- 1. BUILD ---------------------- */
+        /*  1. BUILD  */
         stage('Build') {
             steps {
                 echo 'Building Docker image artefact...'
@@ -49,7 +49,7 @@ pipeline {
             }
         }
 
-        /* ---------------------- 2. TEST ---------------------- */
+        /*  2. TEST  */
         stage('Test') {
             steps {
                 sh 'npm test'
@@ -67,12 +67,15 @@ pipeline {
             }
         }
 
-        /* ---------------------- 3. CODE QUALITY ---------------------- */
+        /*  3. CODE QUALITY  */
         stage('Code Quality') {
             steps {
                 sh 'npm run lint -- -f checkstyle -o reports/eslint.xml || true'
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
-                    sh 'npx sonar-scanner'
+                    script {
+                        def scannerHome = tool 'SonarScanner'
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
                 }
             }
         }
@@ -85,7 +88,7 @@ pipeline {
             }
         }
 
-        /* ---------------------- 4. SECURITY ---------------------- */
+        /* 4. SECURITY  */
         stage('Security') {
             steps {
                 echo 'Scanning dependencies with npm audit...'
@@ -93,10 +96,8 @@ pipeline {
 
                 echo 'Scanning the built Docker image with Trivy...'
                 sh """
-                  docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                    -v \$(pwd):/report aquasec/trivy:latest image \
-                    --severity HIGH,CRITICAL --exit-code 0 \
-                    --format json -o /report/reports/trivy-report.json \
+                  trivy image --severity HIGH,CRITICAL --exit-code 0 \
+                    --format json -o reports/trivy-report.json \
                     ${IMAGE_NAME}:${BUILD_TAG}
                 """
             }
@@ -110,7 +111,7 @@ pipeline {
         // and documented in the report (issue, severity, remediation) - see report
         // section "Security stage" for the current findings on this project.
 
-        /* ---------------------- 5. DEPLOY (staging) ---------------------- */
+        /* 5. DEPLOY (staging)  */
         stage('Deploy') {
             steps {
                 echo 'Deploying to the staging environment (Docker Compose)...'
@@ -132,7 +133,7 @@ pipeline {
             }
         }
 
-        /* ---------------------- 6. RELEASE (production) ---------------------- */
+        /*  6. RELEASE (production)  */
         stage('Release Approval') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
@@ -166,7 +167,7 @@ pipeline {
             }
         }
 
-        /* ---------------------- 7. MONITORING & ALERTING ---------------------- */
+        /* 7. MONITORING & ALERTING  */
         stage('Monitoring') {
             steps {
                 echo 'Deploying/refreshing the Prometheus + Alertmanager + Grafana stack...'
