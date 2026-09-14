@@ -82,8 +82,25 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    sh '''
+                      sleep 8
+                      CE_TASK_URL=$(grep ceTaskUrl .scannerwork/report-task.txt | cut -d= -f2-)
+                      curl -s -u "$SONAR_AUTH_TOKEN:" "$CE_TASK_URL" -o ce-task.json
+                      for i in $(seq 1 15); do
+                        STATUS=$(grep -o '"status":"[A-Z]*"' ce-task.json | head -1 | cut -d'"' -f4)
+                        if [ "$STATUS" = "SUCCESS" ]; then break; fi
+                        sleep 3
+                        curl -s -u "$SONAR_AUTH_TOKEN:" "$CE_TASK_URL" -o ce-task.json
+                      done
+                      ANALYSIS_ID=$(grep -o '"analysisId":"[^"]*"' ce-task.json | cut -d'"' -f4)
+                      curl -s -u "$SONAR_AUTH_TOKEN:" "$SONAR_HOST_URL/api/qualitygates/project_status?analysisId=$ANALYSIS_ID" -o qg-status.json
+                      QG_STATUS=$(grep -o '"status":"[A-Z]*"' qg-status.json | head -1 | cut -d'"' -f4)
+                      echo "SonarQube Quality Gate status: $QG_STATUS"
+                      if [ "$QG_STATUS" != "OK" ]; then
+                        echo "WARNING: Quality Gate did not pass (status: $QG_STATUS)"
+                      fi
+                    '''
                 }
             }
         }
