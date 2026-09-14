@@ -140,7 +140,7 @@ pipeline {
                 echo 'Waiting for staging health check...'
                 sh '''
                   for i in $(seq 1 15); do
-                    if curl -sf http://localhost:3000/health; then
+                    if curl -sf http://host.docker.internal:3000/health; then
                       echo "Staging is healthy"; exit 0
                     fi
                     sleep 3
@@ -174,7 +174,7 @@ pipeline {
                 """
                 sh '''
                   for i in $(seq 1 15); do
-                    if curl -sf http://localhost:4000/health; then
+                    if curl -sf http://host.docker.internal:4000/health; then
                       echo "Production is healthy"; exit 0
                     fi
                     sleep 3
@@ -194,8 +194,8 @@ pipeline {
                 echo 'Verifying Prometheus is scraping the production target...'
                 sh '''
                   sleep 5
-                  curl -sf http://localhost:9090/-/healthy
-                  curl -s "http://localhost:9090/api/v1/targets" | grep -o '"health":"up"' || echo "WARNING: target not yet up"
+                  curl -sf http://host.docker.internal:9090/-/healthy
+                  curl -s "http://host.docker.internal:9090/api/v1/targets" | grep -o '"health":"up"' || echo "WARNING: target not yet up"
                 '''
             }
         }
