@@ -1,36 +1,45 @@
-# VietEats API — SIT223/SIT753 HD DevOps Pipeline
+# VietEats API — my SIT223/SIT753 HD DevOps pipeline
 
-A Node.js/Express REST API + simple static frontend for **VietEats**, a
-community-contributed directory of cafés/restaurants across Vietnam (JWT auth,
-CRUD, MongoDB), used as the demo project for the 7-stage Jenkins pipeline:
-**Build → Test → Code Quality → Security → Deploy → Release → Monitoring**.
+This is my project for the HD DevOps task. It's a small directory site for
+cafes and restaurants around Vietnam — people can browse places by city and
+category, and once they log in they can add their own spots. I picked this
+over a generic to-do app mainly because it still has real auth + CRUD, but
+also gave me something I could actually show off in the demo video instead
+of just poking the API with curl.
 
-## 1. Project structure
+The whole thing is wired up to a Jenkins pipeline with all 7 stages: **Build
+→ Test → Code Quality → Security → Deploy → Release → Monitoring**.
+
+## What's in here
 
 ```
 vieteats-api/
-├── src/                      # application code (routes, controllers, models)
-├── public/                    # simple static frontend (index.html/style.css/app.js)
-├── tests/                    # Jest + Supertest integration tests
-├── monitoring/                # Prometheus / Alertmanager / Grafana stack
-├── Dockerfile                 # multi-stage build → production image (Build stage artefact)
-├── docker-compose.yml         # staging environment (Deploy stage)
-├── docker-compose.prod.yml    # production environment (Release stage)
-├── sonar-project.properties   # SonarQube scanner config (Code Quality stage)
-├── .eslintrc.json             # ESLint rules (Code Quality stage)
-└── Jenkinsfile                 # the 7-stage declarative pipeline
+├── src/                # the API - routes, controllers, models
+├── public/              # plain HTML/CSS/JS frontend, served by Express
+├── tests/               # Jest + Supertest tests
+├── monitoring/           # Prometheus / Alertmanager / Grafana config
+├── Dockerfile            # multi-stage build -> the production image (Build stage)
+├── docker-compose.yml    # staging environment (Deploy stage)
+├── docker-compose.prod.yml  # production environment (Release stage)
+├── sonar-project.properties # SonarQube config (Code Quality stage)
+├── .eslintrc.json        # ESLint rules (Code Quality stage)
+└── Jenkinsfile            # the actual 7-stage pipeline
 ```
 
-## 2. Run the app locally (sanity check before wiring Jenkins)
+## Running it locally first (before touching Jenkins)
+
+Worth doing this once just to make sure the app itself works before wiring
+up the pipeline — saves you from debugging Jenkins and your own code at the
+same time.
 
 ```bash
 npm install
 cp .env.example .env
-npm run dev        # http://localhost:3000/health should return {"status":"UP"}
-npm test           # runs Jest with an in-memory MongoDB, no external DB needed
+npm run dev        # http://localhost:3000/health should say {"status":"UP"}
+npm test           # Jest + an in-memory Mongo, no real DB needed
 ```
 
-## 3. Push to GitHub
+## Getting it onto GitHub
 
 ```bash
 git init
@@ -40,16 +49,16 @@ git branch -M main
 git remote add origin https://github.com/<your-username>/vieteats-api.git
 git push -u origin main
 ```
-Remember to add your **marker and the Unit Chair** as collaborators (or make
-the repo public) so they can view the code.
 
-## 4. Run Jenkins locally with Docker Desktop
+Don't forget to give the Marker and Unit Chair access — easiest is just to
+make the repo public.
 
-Build the provided `Dockerfile.jenkins` once — it's a normal Jenkins image
-with the Docker CLI baked in, which is the most reliable way to let Jenkins
-run `docker build` / `docker compose` against your Docker Desktop engine on
-Windows, macOS, or Linux (it avoids the flaky "mount the host's docker
-binary" trick, which breaks whenever host/container OS don't match):
+## Setting up Jenkins with Docker Desktop
+
+I run Jenkins itself in a container that also has the Docker CLI installed
+inside it, using `Dockerfile.jenkins`. This turned out to be way more
+reliable than trying to mount the host's `docker` binary into the container
+(that trick breaks constantly depending on your OS).
 
 ```bash
 docker build -t jenkins-with-docker -f Dockerfile.jenkins .
@@ -61,79 +70,84 @@ docker run -d --name jenkins \
   jenkins-with-docker
 ```
 
-Open `http://localhost:8080`, unlock Jenkins with the initial admin password:
+Note: on some setups Jenkins can't actually reach the Docker socket unless
+the container runs as root — if you hit a "permission denied" error talking
+to `/var/run/docker.sock` later on, add `--user root` to the command above.
+
+Open `http://localhost:8080` and grab the first-run password:
 
 ```bash
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
-Install the **suggested plugins**, then add these extra plugins under
-*Manage Jenkins → Plugins*:
+Go with "Install suggested plugins", then also add these under *Manage
+Jenkins → Plugins*, since the pipeline needs them:
 - Docker Pipeline
 - NodeJS Plugin
 - SonarQube Scanner
-- JUnit
 - HTML Publisher
 
-## 5. Configure Jenkins tools & credentials
+## Jenkins config before the first run
 
-- **Manage Jenkins → Tools → NodeJS installations**: add `NodeJS-20` (Node 20.x).
-- **Manage Jenkins → Credentials**: add a *Secret text* credential with ID
-  `vieteats-jwt-secret` (any random string) — used as the production `JWT_SECRET`.
-- **Manage Jenkins → System → SonarQube servers**: add a server named
-  `MySonarQube` pointing at your SonarQube instance (see step 6) with a
-  generated token credential.
+- **Manage Jenkins → Tools**: add a NodeJS installation named `NodeJS-20`
+  (has to match that exact name, it's what the Jenkinsfile refers to).
+- **Manage Jenkins → Credentials**: add a *Secret text* credential, ID
+  `vieteats-jwt-secret`, value = any random string. This becomes the
+  production `JWT_SECRET`.
+- **Manage Jenkins → System → SonarQube servers**: point it at the SonarQube
+  instance from the next step, name it `MySonarQube` (again, has to match
+  what's in the Jenkinsfile).
 
-## 6. Run SonarQube locally (Code Quality stage)
+## SonarQube (for the Code Quality stage)
 
 ```bash
 docker run -d --name sonarqube -p 9000:9000 sonarqube:community
 ```
-Log in at `http://localhost:9000` (admin/admin), generate a token under
-*My Account → Security*, and use it as the Jenkins SonarQube credential.
 
-## 7. Security stage tools
+Log in at `http://localhost:9000` with `admin`/`admin`, it'll make you change
+the password. Then go to *My Account → Security* and generate a token —
+that's what goes into the Jenkins SonarQube credential above.
 
-- `npm audit` runs out of the box — no extra setup needed.
-- **Trivy** is invoked from the pipeline via `docker run aquasec/trivy`, so
-  Docker Desktop is the only prerequisite (the image is pulled automatically
-  on first run).
+## Security stage — nothing extra to install
 
-## 8. Create the pipeline job
+`npm audit` just works out of the box. Trivy is called via
+`docker run aquasec/trivy` directly from the pipeline, so as long as Docker
+Desktop is running it'll pull the image itself the first time (takes a
+minute or two on the very first run).
 
-*New Item → Pipeline → "Pipeline script from SCM"* → Git → your GitHub URL →
-Script Path `Jenkinsfile`. Optionally add a GitHub webhook
-(`http://<your-public-jenkins-url>/github-webhook/`) for automatic triggers,
-or just click **Build Now** for the demo.
+## Creating the pipeline job
 
-## 9. What each stage does
+*New Item → Pipeline* → under Pipeline settings pick "Pipeline script from
+SCM" → Git → paste your GitHub repo URL → Script Path = `Jenkinsfile` → Save,
+then **Build Now**.
 
-| Stage | Tooling | What happens |
+## What each stage actually does
+
+| Stage | Tools | Notes |
 |---|---|---|
-| Build | Docker | Builds a multi-stage production Docker image, archives it as a `.tar` artefact |
-| Test | Jest, Supertest, mongodb-memory-server | Runs 11 integration tests (auth + place CRUD) against an in-memory MongoDB, publishes JUnit + coverage reports |
-| Code Quality | ESLint, SonarQube, Quality Gate | Lints the code, runs static analysis, pipeline aborts if the Sonar Quality Gate fails |
-| Security | npm audit, Trivy | Scans dependencies and the built container image for HIGH/CRITICAL vulnerabilities |
-| Deploy | Docker Compose | Spins up the app + MongoDB on a staging network (port 3000), verifies `/health` |
-| Release | Docker tag, Git tag, Docker Compose | Manual approval gate, tags the image/commit with a semantic version, promotes to a production compose stack (port 4000) |
-| Monitoring | Prometheus, Alertmanager, Grafana | Deploys the monitoring stack, scrapes `/metrics`, verifies the target is `up`, alert rules watch for downtime/5xx/latency |
+| Build | Docker | Multi-stage Dockerfile build, image tagged with the build number and archived as a `.tar` |
+| Test | Jest, Supertest, mongodb-memory-server | 11 tests covering auth + place CRUD, results published as JUnit + coverage |
+| Code Quality | ESLint, SonarQube | Static analysis + a quality gate that fails the build if it doesn't pass |
+| Security | npm audit, Trivy | Scans dependencies and the built image, reports archived |
+| Deploy | Docker Compose | Brings up app + Mongo on staging (port 3000), checks `/health` |
+| Release | Docker/Git tags, Docker Compose, manual approval | Waits for someone to click Proceed, then promotes to production (port 4000) |
+| Monitoring | Prometheus, Alertmanager, Grafana | Brings up the monitoring stack, confirms Prometheus is scraping `/metrics` |
 
-## 10. Recording the demo video (≤10 min)
+## Recording the demo video
 
-1. Clone the repo fresh and show the project structure (~1 min).
-2. Show the Jenkins job configuration and trigger a build.
-3. Let it run through all 7 stages in the Jenkins UI (Blue Ocean view is nice
-   for this), briefly narrating each stage as it goes green.
-4. Show the SonarQube dashboard and the Trivy/npm-audit report artefacts.
-5. Hit the approval `input` step for Release, approve it.
-6. Curl `http://localhost:4000/health` and demo a couple of API calls
-   (register, login, add a café or restaurant) with Postman/curl against the production
-   port.
-7. Open Prometheus (`localhost:9090/targets`) showing the target as `UP`,
-   and Grafana (`localhost:3001`) with a live dashboard.
+Roughly how I'm planning to structure mine (under 10 minutes):
 
-## 11. Known security findings (fill in with your actual scan results)
+1. Quick look at the repo structure.
+2. Trigger a build in Jenkins, let it run through all 7 stages.
+3. Show the SonarQube results and the security scan reports.
+4. Approve the Release step when it pauses for input.
+5. Open the app at `localhost:4000`, register/log in, add a place — show it
+   actually works, not just that the pipeline turned green.
+6. Quick look at Prometheus (`localhost:9090/targets`) and Grafana
+   (`localhost:3001`) to show monitoring is live.
 
-Document any HIGH/CRITICAL findings from `npm audit` / Trivy here: what the
-issue is, its severity, and how you addressed it (upgraded a package,
-excluded a false positive, accepted the risk with justification, etc.).
+## Security scan results
+
+TODO once I've actually run a full pipeline: paste what npm audit / Trivy
+found here, how severe it was, and what I did about it.
+
