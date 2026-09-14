@@ -1,7 +1,7 @@
 # Jenkins controller image that also has the Docker CLI installed, so pipeline
 # stages can run `docker build`, `docker compose`, etc. against the host's
 # Docker Desktop engine via the mounted socket (Docker-outside-of-Docker).
-FROM jenkins/jenkins:lts-jdk17
+FROM jenkins/jenkins:lts-jdk21
 
 USER root
 
