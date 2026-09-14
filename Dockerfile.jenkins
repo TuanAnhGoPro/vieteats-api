@@ -6,7 +6,7 @@ FROM jenkins/jenkins:lts-jdk17
 USER root
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates curl gnupg && \
+    apt-get install -y ca-certificates curl gnupg libatomic1 && \
     install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
     chmod a+r /etc/apt/keyrings/docker.asc && \
@@ -18,5 +18,10 @@ RUN apt-get update && \
 
 # Let the jenkins user talk to the Docker socket mounted from the host
 RUN groupadd -f docker && usermod -aG docker jenkins
+
+# Trivy (container image vulnerability scanner) - installed directly so it
+# runs as a normal process inside this container using the already-mounted
+# docker.sock, avoiding sibling-container volume-mount issues.
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 USER jenkins
