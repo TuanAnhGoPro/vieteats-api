@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VietEats — Cafés &amp; Restaurants Across Vietnam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>VietEats</h1>
+        <p class="tagline">A community guide to good eating, all over Vietnam</p>
+      </div>
+    </div>
+    <div class="auth-area" id="authArea">
+      <button class="btn btn-ghost" id="btnLogin">Log in</button>
+      <button class="btn btn-solid" id="btnRegister">Sign up</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-text">
+      <p class="eyebrow">Contributed by the community</p>
+      <h2>Save every favourite spot,<br/>from Hanoi to Can Tho.</h2>
+      <p class="hero-sub">
+        VietEats is a user-contributed directory of cafés and restaurants —
+        clear addresses, easy to find, no ads.
+      </p>
+      <button class="btn btn-solid btn-large" id="btnOpenAdd">+ Add a place</button>
+    </div>
+  </section>
+
+  <main class="content">
+    <div class="filters">
+      <label class="field">
+        <span>City</span>
+        <select id="filterCity">
+          <option value="">All</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Category</span>
+        <select id="filterCategory">
+          <option value="">All</option>
+        </select>
+      </label>
+      <span class="count" id="resultCount"></span>
+    </div>
+
+    <div id="placesGrid" class="grid"></div>
+    <p id="emptyState" class="empty-state" hidden>
+      No places here yet — be the first to add one.
+    </p>
+  </main>
+
+  <footer class="site-footer">
+    <p>VietEats · Demo project for the SIT223/SIT753 DevOps pipeline assignment</p>
+  </footer>
+
+  <!-- Auth modal -->
+  <dialog id="authDialog" class="dialog">
+    <form method="dialog" class="dialog-form" id="authForm">
+      <h3 id="authTitle">Log in</h3>
+      <label class="field" id="nameFieldWrap" hidden>
+        <span>Your name</span>
+        <input type="text" id="authName" autocomplete="name" />
+      </label>
+      <label class="field">
+        <span>Email</span>
+        <input type="email" id="authEmail" required autocomplete="email" />
+      </label>
+      <label class="field">
+        <span>Password</span>
+        <input type="password" id="authPassword" required minlength="6" autocomplete="current-password" />
+      </label>
+      <p class="form-error" id="authError" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="btnCancelAuth">Cancel</button>
+        <button type="submit" class="btn btn-solid" id="btnSubmitAuth">Log in</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add place modal -->
+  <dialog id="placeDialog" class="dialog">
+    <form method="dialog" class="dialog-form" id="placeForm">
+      <h3>Add a place</h3>
+      <label class="field">
+        <span>Place name</span>
+        <input type="text" id="placeName" required />
+      </label>
+      <label class="field">
+        <span>Address</span>
+        <input type="text" id="placeAddress" required placeholder="Street number, street, district..." />
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>City</span>
+          <select id="placeCity" required></select>
+        </label>
+        <label class="field">
+          <span>Category</span>
+          <select id="placeCategory" required></select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field">
+          <span>Price range</span>
+          <select id="placePrice">
+            <option value="$">$ — budget</option>
+            <option value="$$">$$ — mid-range</option>
+            <option value="$$$">$$$ — upscale</option>
+          </select>
+        </label>
+      </div>
+      <label class="field">
+        <span>Short description</span>
+        <textarea id="placeDescription" rows="3" placeholder="Signature dish, atmosphere, opening hours..."></textarea>
+      </label>
+      <p class="form-error" id="placeError" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-ghost" id="btnCancelPlace">Cancel</button>
+        <button type="submit" class="btn btn-solid">Save place</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+route:
+  receiver: "default-notifier"
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 1h
+
+receivers:
+  - name: "default-notifier"
+    # For the demo video, a webhook receiver (e.g. https://webhook.site) or a
+    # Slack incoming webhook can be dropped in here to show a live alert firing.
+    webhook_configs:
+      - url: "http://host.docker.internal:5001/alert"
+        send_resolved: true

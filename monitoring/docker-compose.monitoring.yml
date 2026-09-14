@@ -1,0 +1,47 @@
+version: "3.9"
+
+# Monitoring & alerting stack - used by the Jenkins Monitoring stage.
+# Scrapes /metrics from the production app (docker-compose.prod.yml) and fires
+# alerts through Alertmanager. Grafana is provided for live dashboards.
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vieteats-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alert.rules.yml:/etc/prometheus/alert.rules.yml
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitoring-net
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: vieteats-alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitoring-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vieteats-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - monitoring-net
+
+networks:
+  monitoring-net:
+    driver: bridge

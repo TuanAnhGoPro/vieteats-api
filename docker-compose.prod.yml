@@ -1,0 +1,39 @@
+version: "3.9"
+
+# Production environment - used by the Jenkins Release stage
+services:
+  app:
+    image: vieteats-api:${RELEASE_TAG:-latest}
+    container_name: vieteats-api-prod
+    restart: always
+    ports:
+      - "4000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/vieteats
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set}
+    depends_on:
+      - mongo
+    networks:
+      - vieteats-prod-net
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+  mongo:
+    image: mongo:7
+    container_name: vieteats-mongo-prod
+    restart: always
+    volumes:
+      - mongo-prod-data:/data/db
+    networks:
+      - vieteats-prod-net
+
+networks:
+  vieteats-prod-net:
+    driver: bridge
+
+volumes:
+  mongo-prod-data:

@@ -1,0 +1,32 @@
+groups:
+  - name: vieteats-api-alerts
+    rules:
+      - alert: AppDown
+        expr: up{job="vieteats-api-prod"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "TaskFlow API production instance is down"
+          description: "Prometheus has not been able to scrape /metrics from the production app for 30s."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_request_duration_seconds_count{status_code=~"5.."}[2m]))
+          /
+          sum(rate(http_request_duration_seconds_count[2m])) > 0.1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate on TaskFlow API"
+          description: "More than 10% of requests are failing with a 5xx status code over the last 2 minutes."
+
+      - alert: SlowResponses
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 latency above 1s"
+          description: "95th percentile response time has exceeded 1 second for 2 minutes."

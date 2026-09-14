@@ -1,0 +1,47 @@
+{
+  "name": "vieteats-api",
+  "version": "1.0.0",
+  "description": "VietEats API - a community-driven directory of cafes/restaurants across Vietnam (JWT auth + CRUD, with a simple static frontend), used as the demo project for the SIT223/SIT753 Jenkins DevOps pipeline HD task.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "build": "echo 'No compile step needed for Node.js - artefact is produced as a Docker image (see Jenkinsfile Build stage)' && npm ci --omit=dev",
+    "test": "cross-env NODE_ENV=test jest --coverage --runInBand",
+    "lint": "eslint 'src/**/*.js' 'tests/**/*.js'",
+    "lint:fix": "eslint 'src/**/*.js' 'tests/**/*.js' --fix"
+  },
+  "keywords": ["jenkins", "devops", "ci-cd", "docker", "sonarqube"],
+  "author": "Student",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.4.1",
+    "morgan": "^1.10.0",
+    "prom-client": "^15.1.2"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "mongodb-memory-server": "^9.2.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "reporters": [
+      "default",
+      ["jest-junit", { "outputDirectory": "reports", "outputName": "junit.xml" }]
+    ],
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": ["src/**/*.js"]
+  }
+}

@@ -1,0 +1,36 @@
+version: "3.9"
+
+# Staging / test environment - used by the Jenkins Deploy stage
+services:
+  app:
+    image: vieteats-api:${BUILD_TAG:-latest}
+    build: .
+    container_name: vieteats-api-staging
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=staging
+      - PORT=3000
+      - MONGO_URI=mongodb://mongo:27017/vieteats
+      - JWT_SECRET=${JWT_SECRET:-staging-secret}
+    depends_on:
+      - mongo
+    networks:
+      - vieteats-net
+
+  mongo:
+    image: mongo:7
+    container_name: vieteats-mongo-staging
+    restart: unless-stopped
+    volumes:
+      - mongo-staging-data:/data/db
+    networks:
+      - vieteats-net
+
+networks:
+  vieteats-net:
+    driver: bridge
+
+volumes:
+  mongo-staging-data:
