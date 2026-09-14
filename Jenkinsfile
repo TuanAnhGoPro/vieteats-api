@@ -189,7 +189,7 @@ pipeline {
             steps {
                 echo 'Deploying/refreshing the Prometheus + Alertmanager + Grafana stack...'
                 sh """
-                  docker compose -f monitoring/docker-compose.monitoring.yml up -d
+                  docker compose -f monitoring/docker-compose.monitoring.yml up -d --build
                 """
                 echo 'Verifying Prometheus is scraping the production target...'
                 sh '''
