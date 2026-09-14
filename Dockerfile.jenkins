@@ -19,9 +19,14 @@ RUN apt-get update && \
 # Let the jenkins user talk to the Docker socket mounted from the host
 RUN groupadd -f docker && usermod -aG docker jenkins
 
-# Trivy (container image vulnerability scanner) - installed directly so it
-# runs as a normal process inside this container using the already-mounted
-# docker.sock, avoiding sibling-container volume-mount issues.
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+# Trivy (container image vulnerability scanner) - installed via Trivy's official
+# apt repo (more reliable than piping a script through `sh`, which can fail
+# silently if the download is interrupted).
+RUN curl -sfL https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" > /etc/apt/sources.list.d/trivy.list && \
+    apt-get update && \
+    apt-get install -y trivy && \
+    rm -rf /var/lib/apt/lists/* && \
+    trivy --version
 
 USER jenkins
