@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "echo 'No compile step needed for Node.js - artefact is produced as a Docker image (see Jenkinsfile Build stage)' && npm ci --omit=dev",
-    "test": "cross-env NODE_ENV=test jest --coverage --runInBand",
+    "test": "cross-env NODE_ENV=test MONGOMS_VERSION=7.0.14 jest --coverage --runInBand",
     "lint": "eslint 'src/**/*.js' 'tests/**/*.js'",
     "lint:fix": "eslint 'src/**/*.js' 'tests/**/*.js' --fix"
   },
