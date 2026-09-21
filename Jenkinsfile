@@ -21,22 +21,11 @@ pipeline {
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                sh 'npm ci'
-            }
-        }
-
-        /*  1. BUILD  */
+        /* ---- 1. BUILD ---- */
         stage('Build') {
             steps {
-                echo 'Building Docker image artefact...'
+                echo 'Installing dependencies and building the Docker image artefact...'
+                sh 'npm ci'
                 sh """
                   docker build -t ${IMAGE_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:latest .
                 """
@@ -49,7 +38,7 @@ pipeline {
             }
         }
 
-        /*  2. TEST  */
+        /* ---- 2. TEST ---- */
         stage('Test') {
             steps {
                 sh 'npm test'
@@ -67,7 +56,7 @@ pipeline {
             }
         }
 
-        /*  3. CODE QUALITY  */
+        /* ---- 3. CODE QUALITY ---- */
         stage('Code Quality') {
             steps {
                 sh 'npm run lint -- -f checkstyle -o reports/eslint.xml || true'
@@ -76,13 +65,8 @@ pipeline {
                         def scannerHome = tool 'SonarScanner'
                         sh "${scannerHome}/bin/sonar-scanner"
                     }
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                withSonarQubeEnv("${SONARQUBE_ENV}") {
+                    // Poll SonarQube's API directly for the Quality Gate result instead of
+                    // relying on a webhook callback (avoids Jenkins/network permission issues).
                     sh '''
                       sleep 8
                       CE_TASK_URL=$(grep ceTaskUrl .scannerwork/report-task.txt | cut -d= -f2-)
@@ -105,7 +89,7 @@ pipeline {
             }
         }
 
-        /* 4. SECURITY  */
+        /* ----4. SECURITY ---- */
         stage('Security') {
             steps {
                 echo 'Scanning dependencies with npm audit...'
@@ -128,7 +112,7 @@ pipeline {
         // and documented in the report (issue, severity, remediation) - see report
         // section "Security stage" for the current findings on this project.
 
-        /* 5. DEPLOY (staging)  */
+        /* ---- 5. DEPLOY (staging) ---- */
         stage('Deploy') {
             steps {
                 echo 'Deploying to the staging environment (Docker Compose)...'
@@ -150,17 +134,12 @@ pipeline {
             }
         }
 
-        /*  6. RELEASE (production)  */
-        stage('Release Approval') {
+        /* ---- 6. RELEASE (production) ---- */
+        stage('Release') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
                     input message: "Promote build ${BUILD_TAG} to production as ${RELEASE_TAG}?"
                 }
-            }
-        }
-
-        stage('Release') {
-            steps {
                 sh """
                   docker tag ${IMAGE_NAME}:${BUILD_TAG} ${IMAGE_NAME}:${RELEASE_TAG}
                   git tag ${RELEASE_TAG}
@@ -184,7 +163,7 @@ pipeline {
             }
         }
 
-        /* 7. MONITORING & ALERTING  */
+        /* ----7. MONITORING & ALERTING ---- */
         stage('Monitoring') {
             steps {
                 echo 'Deploying/refreshing the Prometheus + Alertmanager + Grafana stack...'
