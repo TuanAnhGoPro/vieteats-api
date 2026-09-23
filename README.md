@@ -133,18 +133,7 @@ then **Build Now**.
 | Release | Docker/Git tags, Docker Compose, manual approval | Waits for someone to click Proceed, then promotes to production (port 4000) |
 | Monitoring | Prometheus, Alertmanager, Grafana | Brings up the monitoring stack, confirms Prometheus is scraping `/metrics` |
 
-## Recording the demo video
 
-Roughly how I'm planning to structure mine (under 10 minutes):
-
-1. Quick look at the repo structure.
-2. Trigger a build in Jenkins, let it run through all 7 stages.
-3. Show the SonarQube results and the security scan reports.
-4. Approve the Release step when it pauses for input.
-5. Open the app at `localhost:4000`, register/log in, add a place — show it
-   actually works, not just that the pipeline turned green.
-6. Quick look at Prometheus (`localhost:9090/targets`) and Grafana
-   (`localhost:3001`) to show monitoring is live.
 
 ## Security scan results
 
