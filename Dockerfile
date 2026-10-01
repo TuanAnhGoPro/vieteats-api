@@ -15,6 +15,7 @@ COPY --from=build /app/src ./src
 COPY --from=build /app/public ./public
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 USER appuser
 
 EXPOSE 3000
