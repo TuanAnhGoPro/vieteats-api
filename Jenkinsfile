@@ -97,10 +97,25 @@ pipeline {
 
                 echo 'Scanning the built Docker image with Trivy...'
                 sh """
-                  trivy image --severity HIGH,CRITICAL --exit-code 0 \
-                    --format json -o reports/trivy-report.json \
-                    ${IMAGE_NAME}:${BUILD_TAG}
+                  trivy image --severity HIGH,CRITICAL --format json -o reports/trivy-report.json ${IMAGE_NAME}:${BUILD_TAG}
                 """
+
+                echo 'Gating the pipeline on real findings...'
+                sh '''
+                  echo "Checking npm audit for HIGH/CRITICAL in production dependencies..."
+                  npm audit --omit=dev --audit-level=high
+                  NPM_GATE=$?
+
+                  echo "Checking Trivy for any HIGH/CRITICAL findings..."
+                  trivy image --severity HIGH,CRITICAL --exit-code 1 --format table vieteats-api:${BUILD_TAG}
+                  TRIVY_GATE=$?
+
+                  if [ "$NPM_GATE" -ne 0 ] || [ "$TRIVY_GATE" -ne 0 ]; then
+                    echo "SECURITY GATE FAILED: HIGH/CRITICAL vulnerabilities found. See reports for details."
+                    exit 1
+                  fi
+                  echo "Security gate passed: no HIGH/CRITICAL findings in production dependencies or image."
+                '''
             }
             post {
                 always {
@@ -108,6 +123,7 @@ pipeline {
                 }
             }
         }
+
         // NOTE: any HIGH/CRITICAL findings from npm audit or Trivy are triaged manually
         // and documented in the report (issue, severity, remediation) - see report
         // section "Security stage" for the current findings on this project.
