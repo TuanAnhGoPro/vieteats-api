@@ -11,6 +11,7 @@ pipeline {
         RELEASE_TAG    = "v1.0.${env.BUILD_NUMBER}"
         SONARQUBE_ENV  = 'MySonarQube' // Configure in Manage Jenkins > System > SonarQube servers
         JWT_SECRET     = credentials('vieteats-jwt-secret') // Jenkins credential (Secret text)
+        EC2_HOST       = '15.135.234.187'
     }
 
     options {
