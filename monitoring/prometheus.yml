@@ -14,4 +14,4 @@ scrape_configs:
   - job_name: "vieteats-api-prod"
     metrics_path: /metrics
     static_configs:
-      - targets: ["host.docker.internal:4000"]
+      - targets: ['15.135.234.187:4000']
