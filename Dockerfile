@@ -8,6 +8,7 @@ COPY . .
 # ---------- Stage 2: production runtime ----------
 FROM node:20-alpine AS production
 WORKDIR /app
+RUN apk update && apk upgrade --no-cache
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
