@@ -155,23 +155,25 @@ pipeline {
         stage('Release') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
-                    input message: "Promote build ${BUILD_TAG} to production as ${RELEASE_TAG}?"
+                    input message: "Promote build ${BUILD_TAG} to production on AWS EC2 as ${RELEASE_TAG}?"
                 }
                 sh """
                   docker tag ${IMAGE_NAME}:${BUILD_TAG} ${IMAGE_NAME}:${RELEASE_TAG}
                   git tag ${RELEASE_TAG}
                 """
-                echo 'Promoting to the production environment...'
-                sh """
-                  export RELEASE_TAG=${RELEASE_TAG}
-                  export JWT_SECRET=${JWT_SECRET}
-                  docker compose -f docker-compose.prod.yml down --remove-orphans || true
-                  docker compose -f docker-compose.prod.yml up -d
-                """
+                echo 'Shipping the image to the AWS EC2 server and deploying there...'
+                sshagent(['aws-ec2-ssh-key']) {
+                    sh """
+                      docker save ${IMAGE_NAME}:${RELEASE_TAG} | gzip | ssh -o StrictHostKeyChecking=no ubuntu@${EC2_HOST} 'gunzip | docker load'
+                      scp -o StrictHostKeyChecking=no docker-compose.prod.yml ubuntu@${EC2_HOST}:~/docker-compose.prod.yml
+                      ssh -o StrictHostKeyChecking=no ubuntu@${EC2_HOST} "export RELEASE_TAG=${RELEASE_TAG} && export JWT_SECRET=${JWT_SECRET} && docker compose -f ~/docker-compose.prod.yml down --remove-orphans || true && docker compose -f ~/docker-compose.prod.yml up -d"
+                    """
+                }
+                echo 'Waiting for the AWS EC2 production app to report healthy...'
                 sh '''
                   for i in $(seq 1 15); do
-                    if curl -sf http://host.docker.internal:4000/health; then
-                      echo "Production is healthy"; exit 0
+                    if curl -sf http://'''+"${EC2_HOST}"+''':4000/health; then
+                      echo "Production (AWS EC2) is healthy"; exit 0
                     fi
                     sleep 3
                   done
